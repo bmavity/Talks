@@ -1,0 +1,68 @@
+﻿ometa DiscountRules <: Parser {
+  num = digit+:f '.' digit+:b -> { f.join('') + '.' + b.join('') }
+      | digit+:d -> d.join(''),
+  operator = ('>' | '=' | '<' | '<=' | '>='),
+  emptyLine = spaces '\n',
+
+  ruleOpening = "discountRule" '\n' -> { self.addRule() },
+  expression = spaces letter+:name spaces operator:o spaces num:n -> { self.addExpression(name.join(''), o, n) }
+             | spaces letter+:name -> { self.addExpression(name.join('')) },
+  when = "when" expression:e '\n',
+  andClause = "and" expression:e '\n',
+  discount = "discountOrder by" ' ' num:n '%' -> { self.addDiscount(n) },
+  ruleFile = (ruleOpening when andClause* discount emptyLine*)* -> { { calculateDiscount: self.calculateDiscount } }
+}
+
+DiscountRules.initialize = function() {
+  var rules = [],
+      currentRule;
+
+  var addDiscount = function(discountPercentage) {
+    currentRule.discount = parseFloat(discountPercentage) / 100;
+  };
+
+  var addExpression = function(propertyName, operator, val) {
+    currentRule.expressions.push({
+      propertyName: propertyName,
+      operator: operator,
+      val: val
+    });
+  };
+
+  var addRule = function() {
+    currentRule = {
+      expressions: []
+    };
+    rules.push(currentRule);
+  };
+  
+  var calculateDiscount = function(context, callback) {
+    var discount = 0;
+    rules.forEach(function(rule) {
+      if(ruleApplies(rule.expressions, context) && rule.discount > discount) {
+        discount = rule.discount;
+      }
+    });
+    callback(discount);
+  };
+
+  var ruleApplies = function(expressions, context) {
+    return expressions.every(function(expression) {
+      var contextValue = context[expression.propertyName];
+      if(contextValue) {
+        if(expression.operator) {
+          return eval(contextValue + expression.operator + expression.val);
+        }
+        return true;
+      }
+      return false;
+    });
+  };
+
+  this.addDiscount = addDiscount;
+  this.addExpression = addExpression;
+  this.addRule = addRule;
+  this.calculateDiscount = calculateDiscount;
+};
+
+DiscountRules

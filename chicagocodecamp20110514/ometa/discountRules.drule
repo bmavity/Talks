@@ -1,0 +1,8 @@
+discountRule
+  when preferredCustomer
+   and orderAmount > 5.00
+    discountOrder by 25%
+
+discountRule
+  when preferredCustomer
+    discountOrder by 5%

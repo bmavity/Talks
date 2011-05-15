@@ -1,6 +1,6 @@
 var plain = './plainVm/rulesRunner',
     ometa = './ometa/rulesRunner',
-    runner = require(plain);
+    runner = require(ometa);
 
 var logResult = function(discount) {
   console.log(discount);
